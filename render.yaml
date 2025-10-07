@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: telegram-file-bot        # اسم سرویس (هرچی خواستی بذار)
+    env: python
+    buildCommand: ""               # چون نیازی به build نداری
+    startCommand: python file_downloader_bot.py
+    envVars:
+      - key: TG_BOT_TOKEN
+        sync: false                # مقدارش رو بعد از deploy توی محیط Render تنظیم می‌کنی

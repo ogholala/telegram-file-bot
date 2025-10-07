@@ -7,7 +7,13 @@ import re
 import logging
 import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -15,10 +21,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text(
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
         "سلام 👋\nکافیه لینک فایل رو بفرستی تا دانلود و با نام درست برات ارسال کنم.\nمثال:\nhttps://example.com/files/my-file-01.pdf"
     )
+
 
 def sanitize_filename(url: str) -> str:
     filename = url.split("/")[-1] or "file"
@@ -26,19 +34,20 @@ def sanitize_filename(url: str) -> str:
     filename = re.sub(r"[^A-Za-z0-9_.]", "", filename)
     return filename
 
-def handle_link(update: Update, context: CallbackContext):
+
+async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
     if not re.match(r"^https?://", url):
-        update.message.reply_text("❌ لطفاً لینک معتبر (http یا https) ارسال کن.")
+        await update.message.reply_text("❌ لطفاً لینک معتبر (http یا https) ارسال کن.")
         return
 
-    update.message.reply_text("🔄 در حال دانلود فایل، لطفاً چند لحظه صبر کن...")
+    await update.message.reply_text("🔄 در حال دانلود فایل، لطفاً چند لحظه صبر کن...")
 
     try:
         response = requests.get(url, stream=True, timeout=30)
         response.raise_for_status()
     except Exception as e:
-        update.message.reply_text(f"❌ خطا در دانلود فایل:\n{e}")
+        await update.message.reply_text(f"❌ خطا در دانلود فایل:\n{e}")
         return
 
     filename = sanitize_filename(url)
@@ -48,7 +57,7 @@ def handle_link(update: Update, context: CallbackContext):
                 if chunk:
                     f.write(chunk)
 
-        update.message.reply_document(
+        await update.message.reply_document(
             document=open(filename, "rb"),
             filename=filename,
             caption=f"✅ فایل با نام جدید ارسال شد:\n`{filename}`",
@@ -56,25 +65,26 @@ def handle_link(update: Update, context: CallbackContext):
         )
 
     except Exception as e:
-        update.message.reply_text(f"❌ خطا در ارسال فایل:\n{e}")
+        await update.message.reply_text(f"❌ خطا در ارسال فایل:\n{e}")
     finally:
         if os.path.exists(filename):
             os.remove(filename)
 
-def main():
+
+async def main():
     TOKEN = os.getenv("TG_BOT_TOKEN")
     if not TOKEN:
         raise RuntimeError("⚠️ متغیر محیطی TG_BOT_TOKEN تنظیم نشده است!")
 
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
+    application = ApplicationBuilder().token(TOKEN).build()
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_link))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
 
     print("🤖 Bot is running...")
-    updater.start_polling()
-    updater.idle()
+    await application.run_polling()
+
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Telegram File Downloader Bot (async version - python-telegram-bot v20.6)
-Compatible with Python 3.13 and Render Free.
+Telegram File Downloader Bot (python-telegram-bot 21.6)
+✅ 100% compatible with Python 3.13 and Render Free
 """
 
 import os
@@ -10,19 +10,23 @@ import re
 import logging
 import requests
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
-# --- Logging ---
+# Logging
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
 
-# --- Commands ---
+# Commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Respond to /start command"""
     await update.message.reply_text(
         "سلام 👋\n"
         "کافیه لینک فایل رو بفرستی تا دانلود و با نام درست برات ارسال کنم.\n"
@@ -31,14 +35,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def sanitize_filename(url: str) -> str:
-    """Make filename safe for saving"""
     filename = url.split("/")[-1] or "file"
     filename = re.sub(r"-", "_", filename)
     filename = re.sub(r"[^A-Za-z0-9_.]", "", filename)
     return filename
 
 
-# --- Main file handler ---
+# Link handler
 async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
 
@@ -56,7 +59,6 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     filename = sanitize_filename(url)
-
     try:
         with open(filename, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
@@ -67,32 +69,33 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             document=open(filename, "rb"),
             filename=filename,
             caption=f"✅ فایل با نام جدید ارسال شد:\n`{filename}`",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
-
     except Exception as e:
         await update.message.reply_text(f"❌ خطا در ارسال فایل:\n{e}")
-
     finally:
         if os.path.exists(filename):
             os.remove(filename)
 
 
-# --- Main entrypoint ---
-async def main():
+# Main
+def main():
     TOKEN = os.getenv("TG_BOT_TOKEN")
     if not TOKEN:
         raise RuntimeError("⚠️ متغیر محیطی TG_BOT_TOKEN تنظیم نشده است!")
 
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
 
     print("🤖 Bot is running...")
-    await app.run_polling()
+    app.run_polling()
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Telegram File Downloader Bot (python-telegram-bot 21.6)
-✅ 100% compatible with Python 3.13 and Render Free
+Telegram File Downloader Bot (async - updater-free)
+✅ Compatible with Python 3.13 and Render
 """
 
 import os
@@ -11,21 +11,20 @@ import logging
 import requests
 from telegram import Update
 from telegram.ext import (
-    ApplicationBuilder,
+    Application,
     CommandHandler,
     MessageHandler,
     ContextTypes,
     filters,
 )
 
-# Logging
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
 
 
-# Commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "سلام 👋\n"
@@ -41,7 +40,6 @@ def sanitize_filename(url: str) -> str:
     return filename
 
 
-# Link handler
 async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
 
@@ -78,23 +76,18 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(filename)
 
 
-# Main
 def main():
     TOKEN = os.getenv("TG_BOT_TOKEN")
     if not TOKEN:
         raise RuntimeError("⚠️ متغیر محیطی TG_BOT_TOKEN تنظیم نشده است!")
 
-    app = (
-        ApplicationBuilder()
-        .token(TOKEN)
-        .build()
-    )
+    app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
 
     print("🤖 Bot is running...")
-    app.run_polling()
+    app.run_polling(close_loop=False)
 
 
 if __name__ == "__main__":

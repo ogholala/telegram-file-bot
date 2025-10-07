@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Telegram File Downloader Bot (v20.6 compatible)"""
+"""
+Telegram File Downloader Bot (async version - python-telegram-bot v20.6)
+Compatible with Python 3.13 and Render Free.
+"""
 
 import os
 import re
 import logging
 import requests
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
+# --- Logging ---
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -22,21 +20,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# --- Commands ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Respond to /start command"""
     await update.message.reply_text(
-        "سلام 👋\nکافیه لینک فایل رو بفرستی تا دانلود و با نام درست برات ارسال کنم.\nمثال:\nhttps://example.com/files/my-file-01.pdf"
+        "سلام 👋\n"
+        "کافیه لینک فایل رو بفرستی تا دانلود و با نام درست برات ارسال کنم.\n"
+        "مثال:\nhttps://example.com/files/my-file-01.pdf"
     )
 
 
 def sanitize_filename(url: str) -> str:
+    """Make filename safe for saving"""
     filename = url.split("/")[-1] or "file"
     filename = re.sub(r"-", "_", filename)
     filename = re.sub(r"[^A-Za-z0-9_.]", "", filename)
     return filename
 
 
+# --- Main file handler ---
 async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
+
     if not re.match(r"^https?://", url):
         await update.message.reply_text("❌ لطفاً لینک معتبر (http یا https) ارسال کن.")
         return
@@ -51,6 +56,7 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     filename = sanitize_filename(url)
+
     try:
         with open(filename, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
@@ -66,23 +72,25 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         await update.message.reply_text(f"❌ خطا در ارسال فایل:\n{e}")
+
     finally:
         if os.path.exists(filename):
             os.remove(filename)
 
 
+# --- Main entrypoint ---
 async def main():
     TOKEN = os.getenv("TG_BOT_TOKEN")
     if not TOKEN:
         raise RuntimeError("⚠️ متغیر محیطی TG_BOT_TOKEN تنظیم نشده است!")
 
-    application = ApplicationBuilder().token(TOKEN).build()
+    app = ApplicationBuilder().token(TOKEN).build()
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
 
     print("🤖 Bot is running...")
-    await application.run_polling()
+    await app.run_polling()
 
 
 if __name__ == "__main__":

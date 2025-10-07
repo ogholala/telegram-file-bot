@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Telegram File Downloader Bot (v23+ compatible)"""
+"""Telegram File Downloader Bot (v23.5+ compatible)"""
+
 import os, re, logging, requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters

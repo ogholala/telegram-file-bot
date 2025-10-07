@@ -2,7 +2,7 @@ services:
   - type: web
     name: telegram-file-bot
     env: python
-    buildCommand: ""
+    buildCommand: pip install -r requirements.txt
     startCommand: python file_downloader_bot.py
     envVars:
       - key: TG_BOT_TOKEN
